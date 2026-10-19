@@ -1,0 +1,12 @@
+{
+  "name": "akaion-kaio",
+  "description": "Strumenti Kaio by Akaion per Claude Code",
+  "owner": { "name": "Akaion SRL", "email": "akaion@akaion.com" },
+  "plugins": [
+    {
+      "name": "kaio",
+      "source": "./",
+      "description": "Bundle Kaio per i siti clienti + MCP Akaion"
+    }
+  ]
+}

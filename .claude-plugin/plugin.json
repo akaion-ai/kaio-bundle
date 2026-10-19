@@ -1,0 +1,10 @@
+{
+  "name": "kaio",
+  "displayName": "Kaio by Akaion",
+  "version": "1.0.0",
+  "description": "Bundle Kaio per i siti clienti (visite, chat, prenotazioni, GEO, font locali, note legali) e server MCP di Akaion per configurare le attività.",
+  "author": { "name": "Akaion SRL", "email": "akaion@akaion.com", "url": "https://akaion.com" },
+  "homepage": "https://smallbusiness.akaion.com",
+  "repository": "https://github.com/akaion-ai/kaio-bundle",
+  "keywords": ["kaio", "akaion", "prenotazioni", "geo", "llms.txt", "mcp"]
+}

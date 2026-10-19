@@ -1,0 +1,5 @@
+{
+  "mcpServers": {
+    "akaion": { "type": "http", "url": "https://api.website.prod.akaion.com/mcp" }
+  }
+}
