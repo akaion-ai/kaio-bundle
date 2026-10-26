@@ -14,9 +14,11 @@ e ci mette:
   3. GEO         /llms.txt che risponde con i dati vivi di Kaio + scheda JSON-LD nel <head>
                  (serve che lo slug sia nella directory pubblica di Kaio)
   4. font locali niente Google Fonts dal browser (legal/fonts_local.py)
+  5. via Lovable  sempre: tolti .lovable, bunfig/bun.lock, reportLovableError, @lovable.dev
+                 in package.json, blocco LOVABLE in AGENTS.md, README di Lovable
 
 Poi controlla quello che non si può fare da soli e lo stampa come «DA FARE»:
-resti di Lovable, /privacy e footer (servono i dati veri del titolare), noindex,
+vite.config con @lovable.dev (da sostituire a mano), /privacy e footer (servono i dati veri del titolare), noindex,
 dominio in allowed_origins. Si può rilanciare: quello che c'è già resta com'è.
 Poi commit, push, deploy. Solo libreria standard, Python 3.9+.
 """
@@ -25,6 +27,7 @@ from __future__ import annotations
 import argparse
 import json
 import re
+import shutil
 import subprocess
 import sys
 import urllib.request
@@ -190,18 +193,82 @@ def site_kind(site: Path) -> tuple[str, Path]:
     sys.exit(f"{site}: non trovo src/routes/__root.tsx, app/layout.tsx né index.html — che sito è?")
 
 
+VITE_STANDARD = """import { defineConfig } from "vite";
+import { tanstackStart } from "@tanstack/react-start/plugin/vite";
+import viteReact from "@vitejs/plugin-react";
+import tailwindcss from "@tailwindcss/vite";
+import tsConfigPaths from "vite-tsconfig-paths";
+import { nitro } from "nitro/vite";
+
+// Config TanStack Start standard (senza Lovable).
+export default defineConfig({
+  plugins: [
+    tsConfigPaths(),
+    __TANSTACK__,
+    viteReact(),
+    tailwindcss(),
+    nitro(),
+  ],
+});
+"""
+
+
+def strip_lovable(site: Path) -> list[str]:
+    """Via Lovable, sempre: la base del bundle è un sito pulito, senza Lovable."""
+    done = []
+    vite = site / "vite.config.ts"
+    if vite.exists() and "@lovable.dev" in vite.read_text(errors="ignore"):
+        # config TanStack Start standard, senza @lovable.dev (build verificato sul sito test)
+        start = 'tanstackStart({ server: { entry: "server" } })' if (site / "src/server.ts").exists() else "tanstackStart()"
+        vite.write_text(VITE_STANDARD.replace("__TANSTACK__", start))
+        done.append("vite.config.ts: config TanStack Start standard")
+    for n in (".lovable", "bun.lock", "bunfig.toml", "src/lib/lovable-error-reporting.ts"):
+        p = site / n
+        if p.is_dir():
+            shutil.rmtree(p)
+            done.append(n)
+        elif p.exists():
+            p.unlink()
+            done.append(n)
+    for p in (site / "src").rglob("*.ts*") if (site / "src").exists() else []:
+        src = p.read_text(errors="ignore")
+        if "reportLovableError" not in src:
+            continue
+        # import e chiamata a una riga: le altre forme le lascia in DA FARE
+        new = re.sub(r"^import \{ reportLovableError \} from [^\n]*\n", "", src, flags=re.M)
+        new = re.sub(r"^[ \t]*reportLovableError\([^\n]*\);\n", "", new, flags=re.M)
+        if new != src:
+            p.write_text(new)
+            done.append(f"{p.relative_to(site)}: reportLovableError")
+    agents = site / "AGENTS.md"
+    if agents.exists() and "LOVABLE:BEGIN" in agents.read_text(errors="ignore"):
+        new = re.sub(r"<!-- LOVABLE:BEGIN -->.*?<!-- LOVABLE:END -->\n*", "", agents.read_text(errors="ignore"), flags=re.S)
+        if new.strip():
+            agents.write_text(new)
+        else:
+            agents.unlink()
+        done.append("AGENTS.md: blocco Lovable")
+    readme = site / "README.md"
+    if readme.exists() and "lovable" in readme.read_text(errors="ignore").lower():
+        readme.write_text(f"# {site.name}\n")
+        done.append("README.md: riscritto senza Lovable")
+    pkg = site / "package.json"
+    if pkg.exists() and "@lovable.dev/" in pkg.read_text(errors="ignore"):
+        data = json.loads(pkg.read_text())
+        for sec in ("dependencies", "devDependencies"):
+            for k in [k for k in data.get(sec, {}) if k.startswith("@lovable.dev/")]:
+                del data[sec][k]
+                done.append(f"package.json: {k}")
+        pkg.write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n")
+    return done
+
+
 def leftovers(site: Path, text: str, chat: bool, main: Path) -> list[str]:
     todo = []
-    lovable = [n for n in (".lovable", "bun.lock", "bunfig.toml", "src/lib/lovable-error-reporting.ts")
-               if (site / n).exists()]
-    agents = site / "AGENTS.md"  # il nostro si tiene, quello generato da Lovable no
-    if agents.exists() and "lovable" in agents.read_text(errors="ignore").lower():
-        lovable.append("AGENTS.md")
-    pkg = site / "package.json"
-    if pkg.exists() and "lovable" in pkg.read_text(errors="ignore"):
-        lovable.append("@lovable.dev in package.json")
-    if lovable:
-        todo.append("via Lovable (passo 1 della ricetta sito-cliente): " + ", ".join(lovable))
+    vite = site / "vite.config.ts"
+    if vite.exists() and "@lovable.dev" in vite.read_text(errors="ignore"):
+        todo.append("vite.config.ts usa @lovable.dev/vite-tanstack-config: sostituiscilo con la config TanStack Start standard "
+                    "(tanstackStart, viteReact, tailwindcss, tsconfigPaths, nitro) e rilancia npm/bun install + build")
     if not [p for p in site.rglob("privacy.*") if "node_modules" not in p.parts]:
         todo.append("/privacy: copia legal/privacy.tsx (o scrivi la pagina) e compila L con i dati veri del titolare (P.IVA da VIES)")
     if not re.search(r"P\.\s?IVA", text):
@@ -224,6 +291,8 @@ def main() -> None:
     kind, main_file = site_kind(a.site)
     print(f"sito: {kind} ({main_file.relative_to(a.site)})")
     todo: list[str] = []
+    # prima di tutto: il vite.config standard serve al passo GEO (nitro)
+    print("via Lovable:", "; ".join(strip_lovable(a.site)) or "niente da togliere")
 
     src = main_file.read_text()
     if kind == "html":
