@@ -8,6 +8,7 @@ Il bundle mette sul sito:
 - **kchat.js** — la chat Kaio: risponde su servizi, prezzi, orari e posti liberi di quell'attività e porta a prenotare;
 - **GEO** — `/llms.txt` con listino e orari sempre aggiornati da Kaio e la scheda `schema.org` nel `<head>`: così ChatGPT, Claude e Perplexity trovano l'attività e sanno dove prenotare;
 - **font locali** — niente Google Fonts dal browser, zero cookie e zero terze parti: il banner cookie non serve;
+- **stile «immersive»** (opzionale, `--style immersive`) — foto a tutto schermo bordo a bordo, titoli enormi, pannelli che si impilano allo scroll, binari di card e mosaico: classi `.im-*` in CSS puro, senza JS né richieste a terzi;
 - **kit legale** — pagina `/privacy` (privacy, cookie, uso dell'IA, condizioni di vendita) e il footer con i dati del titolare.
 
 Funziona su siti **TanStack Start** (quelli usciti da Lovable), **Next.js** (App Router) e **HTML statico**. Solo Python standard, nessuna dipendenza.
@@ -28,7 +29,7 @@ Non devi scrivere codice. Ti serve un assistente che sappia usare questo repo. S
 
 ```sh
 git clone https://github.com/akaion-ai/kaio-bundle.git
-python3 kaio-bundle/bundle_install.py <cartella del sito> <slug Kaio> [--no-chat] [--type BeautySalon]
+python3 kaio-bundle/bundle_install.py <cartella del sito> <slug Kaio> [--no-chat] [--type BeautySalon] [--style immersive]
 # poi: build, commit, push. L'installer stampa i «DA FARE» che non può chiudere da solo.
 ```
 
@@ -53,6 +54,7 @@ Poi in Claude Code: `/kaio:kaio-bundle` (plugin) o `/kaio-bundle` (skill copiata
 bundle_install.py        l'installer (riconosce il tipo di sito da solo)
 legal/privacy.tsx        pagina /privacy per TanStack Start: compila l'oggetto L in cima
 legal/fonts_local.py     porta i Google Fonts in public/fonts
+styles/immersive.css     lo stile «immersive»: blocchi e variabili spiegati in testa al file
 skills/kaio-bundle/      la skill per Claude Code (procedura completa, MCP compresi)
 .claude-plugin/          manifest plugin + marketplace
 .mcp.json                il server MCP di Akaion (si collega con /mcp in Claude Code)

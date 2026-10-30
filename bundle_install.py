@@ -263,6 +263,31 @@ def strip_lovable(site: Path) -> list[str]:
     return done
 
 
+def style_immersive(site: Path, kind: str, main_file: Path) -> str:
+    """Copia styles/immersive.css nel sito e lo collega: @import nel CSS globale, <link> per l'HTML."""
+    css = (HERE / "styles/immersive.css").read_text()
+    if kind == "html":
+        dest = main_file.parent / "kaio-immersive.css"
+        dest.write_text(css)
+        src = main_file.read_text()
+        if "kaio-immersive.css" not in src:
+            main_file.write_text(src.replace("</head>", '    <link rel="stylesheet" href="kaio-immersive.css">\n</head>', 1))
+        return f"{dest.relative_to(site)} collegato"
+    glob = next((site / g for g in ("src/styles.css", "src/index.css", "app/globals.css", "src/app/globals.css")
+                 if (site / g).exists()), None)
+    if glob is None:
+        return "DA FARE: non trovo il CSS globale, importa a mano kaio-immersive.css"
+    (glob.parent / "kaio-immersive.css").write_text(css)
+    src = glob.read_text()
+    if "kaio-immersive.css" not in src:
+        # dopo gli @import iniziali: in CSS gli @import vanno prima di ogni regola
+        lines = src.splitlines(keepends=True)
+        at = max((i + 1 for i, l in enumerate(lines) if l.startswith("@import")), default=0)
+        lines.insert(at, '@import "./kaio-immersive.css";\n')
+        glob.write_text("".join(lines))
+    return f"{glob.relative_to(site)} importa kaio-immersive.css"
+
+
 def leftovers(site: Path, text: str, chat: bool, main: Path) -> list[str]:
     todo = []
     vite = site / "vite.config.ts"
@@ -287,6 +312,7 @@ def main() -> None:
     ap.add_argument("slug")
     ap.add_argument("--no-chat", action="store_true", help="senza chat Kaio")
     ap.add_argument("--type", help="tipo schema.org, se quello dedotto dalla specialità non va")
+    ap.add_argument("--style", choices=["immersive"], help="aggiunge lo stile Kaio (classi .im-*, vedi styles/immersive.css)")
     a = ap.parse_args()
     kind, main_file = site_kind(a.site)
     print(f"sito: {kind} ({main_file.relative_to(a.site)})")
@@ -327,6 +353,9 @@ def main() -> None:
             print("public/llms.txt statico: tolto, copriva il proxy")
         if not entry.get("website"):
             todo.append("Kaio: «Presenza online» senza sito, metti l'URL (PUT /admin/kaio/clients/{org}/online)")
+
+    if a.style:
+        print("stile immersive:", style_immersive(a.site, kind, main_file))
 
     print("font locali:", end=" ", flush=True)
     subprocess.run([sys.executable, str(HERE / "legal/fonts_local.py"), str(a.site)], check=True)

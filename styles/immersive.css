@@ -1,0 +1,380 @@
+/*
+ * Kaio · stile «immersive»
+ * Foto a tutto schermo, bordo a bordo, titoli enormi, pannelli che si impilano allo scroll.
+ * CSS puro: niente JS, niente dipendenze, niente richieste a terzi (il banner cookie resta inutile).
+ * Funziona con Tailwind o senza. Il movimento parte solo dove il browser lo supporta
+ * (animation-timeline) e si spegne con prefers-reduced-motion.
+ *
+ * Personalizza con le variabili su :root (o su una sezione):
+ *   --im-accent  colore del marchio        --im-ink    testo scuro / fondo scuro
+ *   --im-paper   fondo chiaro              --im-mute   testo secondario
+ *   --im-gutter  margine laterale          --im-font   font dei titoli
+ *
+ * Blocchi:
+ *   .im-hero        schermo intero: .im-hero__media (img o più img), .im-hero__copy
+ *   .im-stack       pannelli .im-panel a schermo intero che si impilano uno sopra l'altro
+ *   .im-band        fascia foto a tutto schermo con testo sopra
+ *   .im-split       foto ferma da un lato, testo che scorre dall'altro
+ *   .im-rail        binario orizzontale di card alte (.im-card), scroll-snap
+ *   .im-mosaic      griglia foto senza margini; .im-wide / .im-tall per le tessere grandi
+ *   .im-manifesto   frase gigante su fondo scuro, seconda metà in .im-light
+ *   .im-display .im-title .im-eyebrow .im-lead   tipografia
+ *   .im-pill .im-glass   bottoni;  .im-reveal   entra in scena allo scroll
+ */
+
+:root {
+  --im-accent: #e8754a;
+  --im-ink: #1f1d1c;
+  --im-paper: #fafaf8;
+  --im-mute: #8a857f;
+  --im-gutter: max(1rem, 3vw);
+  --im-font: inherit;
+  --im-ease: cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+
+/* ---------- tipografia ---------- */
+.im-display {
+  font-family: var(--im-font);
+  font-size: clamp(3rem, 9.5vw, 10.5rem);
+  line-height: 0.92;
+  font-weight: 800;
+  letter-spacing: -0.045em;
+  text-wrap: balance;
+}
+.im-title {
+  font-family: var(--im-font);
+  font-size: clamp(2.4rem, 6vw, 6rem);
+  line-height: 0.98;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  text-wrap: balance;
+}
+.im-light {
+  font-weight: 200;
+}
+.im-eyebrow {
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--im-accent);
+}
+.im-lead {
+  font-size: clamp(1.05rem, 1.6vw, 1.35rem);
+  line-height: 1.5;
+  max-width: 38rem;
+  text-wrap: pretty;
+}
+.im-on-dark {
+  color: #fff;
+}
+.im-on-dark .im-lead,
+.im-on-dark .im-light {
+  color: rgb(255 255 255 / 0.72);
+}
+
+/* ---------- bottoni ---------- */
+.im-pill,
+.im-glass {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5em;
+  border-radius: 999px;
+  padding: 0.95em 1.6em;
+  font-size: 0.95rem;
+  font-weight: 600;
+  transition:
+    transform 0.4s var(--im-ease),
+    background-color 0.3s;
+}
+.im-pill {
+  background: var(--im-accent);
+  color: #fff;
+}
+.im-glass {
+  background: rgb(255 255 255 / 0.14);
+  color: #fff;
+  border: 1px solid rgb(255 255 255 / 0.28);
+  backdrop-filter: blur(18px) saturate(1.4);
+  -webkit-backdrop-filter: blur(18px) saturate(1.4);
+}
+.im-pill:hover,
+.im-glass:hover {
+  transform: translateY(-2px);
+}
+.im-glass:hover {
+  background: rgb(255 255 255 / 0.24);
+}
+
+/* ---------- hero a schermo intero ---------- */
+.im-hero {
+  position: relative;
+  height: 100svh;
+  min-height: 560px;
+  overflow: hidden;
+  background: var(--im-ink);
+  color: #fff;
+  isolation: isolate;
+}
+.im-hero__media {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  z-index: -2;
+}
+.im-hero__media img,
+.im-hero__media video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  animation: im-zoom 18s var(--im-ease) both;
+}
+.im-hero::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: linear-gradient(
+    to top,
+    rgb(0 0 0 / 0.78) 0%,
+    rgb(0 0 0 / 0.25) 45%,
+    rgb(0 0 0 / 0) 70%,
+    rgb(0 0 0 / 0.35) 100%
+  );
+}
+.im-hero__copy {
+  position: absolute;
+  inset: auto var(--im-gutter) clamp(2rem, 7vh, 5rem);
+}
+/* su telefono resta una foto sola: la prima */
+@media (max-width: 767px) {
+  .im-hero__media > :not(:first-child) {
+    display: none;
+  }
+}
+
+/* ---------- pannelli che si impilano ---------- */
+.im-stack {
+  position: relative;
+}
+.im-panel {
+  position: sticky;
+  top: 0;
+  height: 100svh;
+  min-height: 560px;
+  overflow: hidden;
+  color: #fff;
+  background: var(--im-ink);
+  isolation: isolate;
+}
+.im-panel > img,
+.im-band > img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  z-index: -2;
+}
+.im-panel::after,
+.im-band::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: linear-gradient(to top, rgb(0 0 0 / 0.72), rgb(0 0 0 / 0.08) 55%, rgb(0 0 0 / 0.2));
+}
+.im-panel__copy,
+.im-band__copy {
+  position: absolute;
+  inset: auto var(--im-gutter) clamp(2rem, 8vh, 5.5rem);
+}
+
+/* ---------- fascia ---------- */
+.im-band {
+  position: relative;
+  height: 92svh;
+  min-height: 520px;
+  overflow: hidden;
+  color: #fff;
+  background: var(--im-ink);
+  isolation: isolate;
+}
+
+/* ---------- split: foto ferma + testo che scorre ---------- */
+.im-split {
+  display: grid;
+  gap: 0;
+}
+.im-split__media {
+  position: relative;
+  height: 70svh;
+  overflow: hidden;
+}
+.im-split__media img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.im-split__copy {
+  padding: clamp(3rem, 10vh, 8rem) var(--im-gutter);
+}
+@media (min-width: 900px) {
+  .im-split {
+    grid-template-columns: 1fr 1fr;
+  }
+  .im-split__media {
+    position: sticky;
+    top: 0;
+    height: 100svh;
+  }
+  .im-split--flip .im-split__media {
+    order: 2;
+  }
+}
+
+/* ---------- binario orizzontale ---------- */
+.im-rail {
+  display: flex;
+  gap: 0.75rem;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scroll-padding-inline: var(--im-gutter);
+  padding-inline: var(--im-gutter);
+  scrollbar-width: none;
+  overscroll-behavior-x: contain;
+}
+.im-rail::-webkit-scrollbar {
+  display: none;
+}
+.im-card {
+  position: relative;
+  flex: 0 0 auto;
+  width: 78vw;
+  aspect-ratio: 4 / 5;
+  scroll-snap-align: start;
+  overflow: hidden;
+  border-radius: 1.25rem;
+  background: var(--im-ink);
+  color: #fff;
+  isolation: isolate;
+}
+@media (min-width: 640px) {
+  .im-card {
+    width: 44vw;
+  }
+}
+@media (min-width: 1024px) {
+  .im-card {
+    width: 29vw;
+  }
+}
+.im-card > img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  z-index: -2;
+  transition: transform 1.2s var(--im-ease);
+}
+.im-card:hover > img {
+  transform: scale(1.05);
+}
+.im-card::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: linear-gradient(to top, rgb(0 0 0 / 0.75), rgb(0 0 0 / 0) 55%);
+}
+.im-card__copy {
+  position: absolute;
+  inset: auto 1.5rem 1.5rem;
+}
+
+/* ---------- mosaico senza margini ---------- */
+.im-mosaic {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  grid-auto-rows: 52vw;
+  grid-auto-flow: dense;
+  gap: 2px;
+  background: var(--im-ink);
+}
+@media (min-width: 768px) {
+  .im-mosaic {
+    grid-template-columns: repeat(4, 1fr);
+    grid-auto-rows: 30vw;
+  }
+  .im-mosaic .im-tall {
+    grid-row: span 2;
+  }
+}
+.im-mosaic .im-wide {
+  grid-column: span 2;
+}
+.im-mosaic > * {
+  overflow: hidden;
+}
+.im-mosaic img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 1.2s var(--im-ease);
+}
+.im-mosaic > *:hover img {
+  transform: scale(1.04);
+}
+
+/* ---------- manifesto ---------- */
+.im-manifesto {
+  background: var(--im-ink);
+  color: #fff;
+  padding: clamp(6rem, 18vh, 12rem) var(--im-gutter);
+}
+.im-manifesto .im-light {
+  color: var(--im-mute);
+}
+
+/* ---------- movimento ---------- */
+@keyframes im-zoom {
+  from {
+    transform: scale(1.12);
+  }
+  to {
+    transform: scale(1);
+  }
+}
+@keyframes im-in {
+  from {
+    opacity: 0;
+    transform: translateY(48px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@supports (animation-timeline: view()) {
+  .im-reveal {
+    animation: im-in linear both;
+    animation-timeline: view();
+    animation-range: entry 0% entry 60%;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .im-hero__media img,
+  .im-hero__media video,
+  .im-reveal {
+    animation: none !important;
+  }
+  .im-card > img,
+  .im-mosaic img,
+  .im-pill,
+  .im-glass {
+    transition: none;
+  }
+}

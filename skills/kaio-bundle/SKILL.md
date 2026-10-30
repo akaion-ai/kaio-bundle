@@ -39,7 +39,7 @@ Verifica: `GET /clients/{org_id}` ha una sezione `readiness` con i punti aperti.
 ## 2. Il bundle sul sito (un comando, nessuna rete di Kaio toccata)
 
 ```sh
-python3 <radice di questo repo>/bundle_install.py <cartella sito> <slug> [--no-chat] [--type BeautySalon]
+python3 <radice di questo repo>/bundle_install.py <cartella sito> <slug> [--no-chat] [--type BeautySalon] [--style immersive]
 ```
 
 Dove sta lo script: installato come plugin → `${CLAUDE_PLUGIN_ROOT}/bundle_install.py`; skill copiata con `install.sh` → nella stessa cartella di questo SKILL.md; repo clonato → nella radice. Cercalo con `ls` prima di lanciarlo.

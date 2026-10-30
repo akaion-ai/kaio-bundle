@@ -57,3 +57,14 @@ def test_tanstack(tmp_path):
     assert "routeRules" in (tmp_path / "vite.config.ts").read_text()
     assert b.json_ld_tanstack(tmp_path, root, b.schema(ENTRY, None)) == "aggiunto"
     assert "scripts: [{ type: \"application/ld+json\"" in root.read_text()
+
+
+def test_style_immersive(tmp_path):
+    css = tmp_path / "src/styles.css"
+    css.parent.mkdir(parents=True)
+    css.write_text('@import "tailwindcss";\n@import "tw-animate-css";\n\nbody { color: red; }\n')
+    b.style_immersive(tmp_path, "tanstack", tmp_path / "src/routes/__root.tsx")
+    b.style_immersive(tmp_path, "tanstack", tmp_path / "src/routes/__root.tsx")  # idempotente
+    lines = css.read_text().splitlines()
+    assert lines[2] == '@import "./kaio-immersive.css";' and css.read_text().count("kaio-immersive") == 1
+    assert ".im-hero" in (tmp_path / "src/kaio-immersive.css").read_text()
